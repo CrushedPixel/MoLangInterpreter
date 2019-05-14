@@ -4,13 +4,25 @@ import {
 	Addition,
 	And,
 	ArithmeticOperation,
-	Assignment, ConditionalExpression,
-	Division, Eq,
+	Assignment, CommaExpression,
+	ConditionalExpression,
+	Division,
+	Eq,
 	Expression,
 	FloatValue,
-	FunctionCall, Ge, Gt, Le, Lt, Minus,
-	Multiplication, Ne, Not, Or, Plus,
-	Subtraction, Unary,
+	FunctionCall,
+	Ge,
+	Gt,
+	Le,
+	Lt,
+	Minus,
+	Multiplication,
+	Ne,
+	Not,
+	Or,
+	Plus,
+	Subtraction,
+	Unary,
 	VariableAccess
 } from './grammar/instructions'
 import Variables, {FunctionVariable, Variable, VarMap} from "./variables";
@@ -216,6 +228,10 @@ export default class MoLang {
 			if (x instanceof Plus) {
 				return +val;
 			}
+		}
+
+		if (x instanceof CommaExpression) {
+			throw new Error("Comma not allowed here");
 		}
 
 		throw new Error(`Unknown instruction: ${x}`);

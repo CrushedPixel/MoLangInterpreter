@@ -2,6 +2,9 @@
 
 @{%
 import {
+    Expression,
+    CommaExpression,
+
     FloatValue,
 
     VariableAccess,
@@ -39,6 +42,19 @@ lexer.next = (next => () => {
 })(lexer.next);
 
 const first = ([fst]) => fst;
+
+function unpackCommaExpression(expr: CommaExpression): Expression[] {
+    let results: Expression[] = [];
+    for (const operand of [expr.leftOperand, expr.rightOperand]) {
+        if (operand instanceof CommaExpression) {
+            results = results.concat(unpackCommaExpression(operand));
+        } else {
+            results.push(operand);
+        }
+    }
+
+    return results;
+}
 %}
 
 @lexer lexer
@@ -73,7 +89,11 @@ ComplexExpression ->
 
 # Expressions
 
-Expression -> ExpAssignment {% first %}
+Expression -> ExpComma {% first %}
+
+ExpComma ->
+    ExpComma "," ExpAssignment {% (data) => new CommaExpression(data[0], data[2]) %}
+  | ExpAssignment {% first %}
 
 ExpAssignment ->
     ExpAssignment "=" ExpConditional {% (data) => new Assignment(data[0], data[2]) %}
@@ -121,22 +141,22 @@ ExpUnary ->
 
 # function call with zero or more parameters
 ExpCall ->
-    ExpCall "(" ((Atom ","):* Atom):? ")"
+    ExpCall "(" (Expression):? ")"
     {%
     (data) => {
         const func = data[0];
 
-        const params: any[] = [];
+        let params: any[] = [];
         const paramGroup = data[2];
         if (paramGroup !== null) {
-            const [pairs, lastExpression] = paramGroup;
-
-            // each pair consists of an expression and the comma
-            for (const pair of pairs) {
-                params.push(pair[0]);
+            // unpack possibly comma-separated arguments
+            for (const expr of paramGroup) {
+                if (expr instanceof CommaExpression) {
+                    params = params.concat(unpackCommaExpression(expr));
+                } else {
+                    params.push(expr);
+                }
             }
-
-            params.push(lastExpression);
         }
 
         return new FunctionCall(func, ...params);

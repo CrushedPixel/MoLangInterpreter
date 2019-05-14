@@ -42,6 +42,9 @@ abstract class Operation implements Expression {
 	}
 }
 
+export class CommaExpression extends Operation {
+}
+
 export class Assignment extends Operation {
 }
 
@@ -58,7 +61,8 @@ export class ConditionalExpression implements Expression {
 }
 
 
-export abstract class ArithmeticOperation extends Operation {}
+export abstract class ArithmeticOperation extends Operation {
+}
 
 export class Multiplication extends ArithmeticOperation {
 }

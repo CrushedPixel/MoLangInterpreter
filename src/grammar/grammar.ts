@@ -7,6 +7,9 @@ declare var number: any;
 declare var name: any;
 
 import {
+    Expression,
+    CommaExpression,
+
     FloatValue,
 
     VariableAccess,
@@ -44,6 +47,19 @@ lexer.next = (next => () => {
 })(lexer.next);
 
 const first = ([fst]) => fst;
+
+function unpackCommaExpression(expr: CommaExpression): Expression[] {
+    let results: Expression[] = [];
+    for (const operand of [expr.leftOperand, expr.rightOperand]) {
+        if (operand instanceof CommaExpression) {
+            results = results.concat(unpackCommaExpression(operand));
+        } else {
+            results.push(operand);
+        }
+    }
+
+    return results;
+}
 
 export interface Token { value: any; [key: string]: any };
 
@@ -93,7 +109,9 @@ export var ParserRules: NearleyRule[] = [
             return expressions;
         }
         },
-    {"name": "Expression", "symbols": ["ExpAssignment"], "postprocess": first},
+    {"name": "Expression", "symbols": ["ExpComma"], "postprocess": first},
+    {"name": "ExpComma", "symbols": ["ExpComma", {"literal":","}, "ExpAssignment"], "postprocess": (data) => new CommaExpression(data[0], data[2])},
+    {"name": "ExpComma", "symbols": ["ExpAssignment"], "postprocess": first},
     {"name": "ExpAssignment", "symbols": ["ExpAssignment", {"literal":"="}, "ExpConditional"], "postprocess": (data) => new Assignment(data[0], data[2])},
     {"name": "ExpAssignment", "symbols": ["ExpConditional"], "postprocess": first},
     {"name": "ExpConditional", "symbols": ["ExpConditional", {"literal":"?"}, "ExpOr", {"literal":":"}, "ExpOr"], "postprocess": (data) => new ConditionalExpression(data[0], data[2], data[4])},
@@ -120,27 +138,24 @@ export var ParserRules: NearleyRule[] = [
     {"name": "ExpUnary", "symbols": [{"literal":"-"}, "ExpCall"], "postprocess": (data) => new Minus(data[1])},
     {"name": "ExpUnary", "symbols": [{"literal":"+"}, "ExpCall"], "postprocess": (data) => new Plus(data[1])},
     {"name": "ExpUnary", "symbols": ["ExpCall"], "postprocess": first},
-    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
-    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["Atom", {"literal":","}]},
-    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1", "symbols": ["ExpCall$ebnf$1$subexpression$1$ebnf$1", "ExpCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "ExpCall$ebnf$1$subexpression$1", "symbols": ["ExpCall$ebnf$1$subexpression$1$ebnf$1", "Atom"]},
+    {"name": "ExpCall$ebnf$1$subexpression$1", "symbols": ["Expression"]},
     {"name": "ExpCall$ebnf$1", "symbols": ["ExpCall$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "ExpCall$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "ExpCall", "symbols": ["ExpCall", {"literal":"("}, "ExpCall$ebnf$1", {"literal":")"}], "postprocess": 
         (data) => {
             const func = data[0];
         
-            const params: any[] = [];
+            let params: any[] = [];
             const paramGroup = data[2];
             if (paramGroup !== null) {
-                const [pairs, lastExpression] = paramGroup;
-        
-                // each pair consists of an expression and the comma
-                for (const pair of pairs) {
-                    params.push(pair[0]);
+                // unpack possibly comma-separated arguments
+                for (const expr of paramGroup) {
+                    if (expr instanceof CommaExpression) {
+                        params = params.concat(unpackCommaExpression(expr));
+                    } else {
+                        params.push(expr);
+                    }
                 }
-        
-                params.push(lastExpression);
             }
         
             return new FunctionCall(func, ...params);
