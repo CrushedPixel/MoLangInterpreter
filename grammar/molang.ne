@@ -24,7 +24,9 @@ import {
     Eq,
     Ne,
 
-    Not
+    Not,
+    Minus,
+    Plus
 } from './instructions';
 
 import moo from 'moo';
@@ -71,13 +73,10 @@ const first = ([fst]) => fst;
 
 @lexer lexer
 
-# macro for syntax elements that should just emit null
-S[content] -> $content {% () => null %}
-
 # Script creates an array of expressions to execute.
 Script ->
     ComplexExpression {% first %}
-  | Expression        {% (data) => [data] %}
+  | Expression        {% (data) => data %}
 
 # In a multi-expression script,
 # all but the last expression
@@ -86,7 +85,7 @@ Script ->
 # but doesn't need to as its value
 # is assumed to be used as the return value.
 ComplexExpression ->
-    (((Assignment):? S[";"]):+ ReturnExpression) S[";"]
+    (((Assignment):? ";"):+ ReturnExpression) ";"
     {%
     (data) => {
         const expressions = [];
@@ -102,49 +101,69 @@ ComplexExpression ->
     }
     %}
 
-Expression ->
-    ArithmeticExpression  {% first %}
-  | ConditionalExpression {% first %}
-  | BooleanExpression     {% first %}
-  | Assignment            {% first %}
-  | FunctionCall          {% first %}
-  | FloatValue            {% first %}
-  | Variable              {% first %}
+# Expressions
 
-ReturnExpression ->
-    S["return"] Expression
-    {% (data) => data[1] %}
+Expression -> ExpConditional {% first %}
 
-FloatValue ->
+ExpConditional ->
+    ExpConditional "?" ExpOr ":" ExpOr {% (data) => new ConditionalExpression(data[0], data[2], data[4]) %}
+  | ExpOr {% first %}
+
+ExpOr ->
+    ExpOr "||" ExpAnd {% (data) => new Or(data[0], data[2]) %}
+  | ExpAnd {% first %}
+
+ExpAnd ->
+    ExpAnd "&&" ExpAnd {% (data) => new And(data[0], data[2]) %}
+  | ExpComparison {% first %}
+
+ExpComparison ->
+    ExpComparison "==" ExpRelational {% (data) => new Eq(data[0], data[2]) %}
+  | ExpComparison "!=" ExpRelational {% (data) => new Ne(data[0], data[2]) %}
+  | ExpRelational {% first %}
+
+ExpRelational ->
+    ExpRelational "<" ExpSum {% (data) => new Lt(data[0], data[2]) %}
+  | ExpRelational "<=" ExpSum {% (data) => new Le(data[0], data[2]) %}
+  | ExpRelational ">" ExpSum {% (data) => new Gt(data[0], data[2]) %}
+  | ExpRelational ">=" ExpSum {% (data) => new Ge(data[0], data[2]) %}
+  | ExpSum {% first %}
+
+ExpSum ->
+    ExpSum "+" ExpProduct {% (data) => new Addition(data[0], data[2]) %}
+  | ExpSum "-" ExpProduct {% (data) => new Subtraction(data[0], data[2]) %}
+  | ExpProduct {% first %}
+
+ExpProduct ->
+    ExpProduct "*" ExpUnary {% (data) => new Multiplication(data[0], data[2]) %}
+  | ExpProduct "/" ExpUnary {% (data) => new Division(data[0], data[2]) %}
+  | ExpUnary {% first %}
+
+ExpUnary ->
+    "!" Atom {% (data) => new Not(data[1]) %}
+  | "-" Atom {% (data) => new Minus(data[1]) %}
+  | "+" Atom {% (data) => new Plus(data[1]) %}
+  | Atom {% first %}
+
+Atom ->
+    Number          {% first %}
+  | Parenthesized   {% first %}
+  | Variable        {% first %}
+  | FunctionCall    {% first %}
+
+Number ->
     %number
     {% ([val]) => new FloatValue(parseFloat(val.value)) %}
 
-# arithmetic operations
-ArithmeticExpression ->
-    Expression S["*"] Expression {% (data) => new Multiplication(data[0], data[2]) %}
-  | Expression S["/"] Expression {% (data) => new Division(data[0], data[2]) %}
-  | Expression S["+"] Expression {% (data) => new Addition(data[0], data[2]) %}
-  | Expression S["-"] Expression {% (data) => new Subtraction(data[0], data[2]) %}
+Parenthesized -> "(" Expression ")" {% (data) => data[1] %}
 
-ConditionalExpression ->
-    Expression S["?"] Expression S[":"] Expression
-    {% (data) => new ConditionalExpression(data[0], data[2], data[4]) %}
-
-# boolean operations
-BooleanExpression ->
-    S["!"] Expression {% (data) => new Not(data[1]) %}
-  | Expression S["&&"] Expression {% (data) => new And(data[0], data[2]) %}
-  | Expression S["||"] Expression {% (data) => new Or(data[0], data[2]) %}
-  | Expression S["<"] Expression {% (data) => new Lt(data[0], data[2]) %}
-  | Expression S["<="] Expression {% (data) => new Le(data[0], data[2]) %}
-  | Expression S[">"] Expression {% (data) => new Gt(data[0], data[2]) %}
-  | Expression S[">="] Expression {% (data) => new Ge(data[0], data[2]) %}
-  | Expression S["=="] Expression {% (data) => new Eq(data[0], data[2]) %}
-  | Expression S["!="] Expression {% (data) => new Ne(data[0], data[2]) %}
+ReturnExpression ->
+    "return" Expression
+    {% (data) => data[1] %}
 
 # variable assignment
 Assignment ->
-    Variable S["="] Expression
+    Variable "=" Expression
     {% (data) => new Assignment(data[0], data[2]) %}
 
 Variable ->
@@ -153,12 +172,12 @@ Variable ->
 
 # variable member access
 MemberAccess ->
-    Variable S["."] %name
+    Variable "." %name
     {% (data) => new Variable(data[2].value, data[0]) %}
 
 # variable function call with zero or more parameters
 FunctionCall ->
-    Variable S["("] ((Expression S[","]):* Expression):? S[")"]
+    Variable "(" ((Expression ","):* Expression):? ")"
     {%
     (data) => {
         const func = data[0];

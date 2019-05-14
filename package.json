@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "scripts": {
-    "build": "./node_modules/.bin/tsc; ./node_modules/.bin/nearleyc grammar/molang.ne -o grammar/grammar.ts"
+    "build": "./node_modules/.bin/nearleyc grammar/molang.ne -o grammar/grammar.ts; ./node_modules/.bin/tsc"
   },
   "keywords": [],
   "author": "CrushedPixel <contact@crushedpixel.net> (http://crushedpixel.net)",

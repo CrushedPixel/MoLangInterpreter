@@ -100,10 +100,19 @@ export class Eq extends Operation {
 export class Ne extends Operation {
 }
 
-export class Not implements Expression {
+class Unary implements Expression {
 	readonly expression: Expression;
 
 	constructor(expression: Expression) {
 		this.expression = expression;
 	}
+}
+
+export class Not extends Unary {
+}
+
+export class Minus extends Unary {
+}
+
+export class Plus extends Unary {
 }
