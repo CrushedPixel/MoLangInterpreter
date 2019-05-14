@@ -9,21 +9,21 @@ export class FloatValue implements Expression {
 	}
 }
 
-export class Variable implements Expression {
+export class VariableAccess implements Expression {
 	readonly name: string;
-	readonly parent: Variable | null;
+	readonly parent: VariableAccess | null;
 
-	constructor(name: string, parent: Variable | null = null) {
+	constructor(name: string, parent: VariableAccess | null = null) {
 		this.name = name;
 		this.parent = parent;
 	}
 }
 
 export class Assignment implements Expression {
-	readonly variable: Variable;
+	readonly variable: VariableAccess;
 	readonly value: Expression;
 
-	constructor(variable: Variable, value: Expression) {
+	constructor(variable: VariableAccess, value: Expression) {
 		this.variable = variable;
 		this.value = value;
 	}
@@ -33,10 +33,10 @@ export class FunctionCall implements Expression {
 	/**
 	 * The variable to call as a function.
 	 */
-	readonly variable: Variable;
+	readonly variable: VariableAccess;
 	readonly parameters: Expression[];
 
-	constructor(variable: Variable, ...parameters: Expression[]) {
+	constructor(variable: VariableAccess, ...parameters: Expression[]) {
 		this.variable = variable;
 		this.parameters = parameters;
 	}

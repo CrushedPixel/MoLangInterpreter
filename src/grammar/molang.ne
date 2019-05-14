@@ -4,7 +4,7 @@
 import {
     FloatValue,
 
-    Variable,
+    VariableAccess,
     Assignment,
     FunctionCall,
 
@@ -29,37 +29,7 @@ import {
     Plus
 } from './instructions';
 
-import moo from 'moo';
-
-const syntax = [
-	// brackets
-	'(', ')', '[', ']', '{', '}',
-
-	',', '.', ';',
-
-	// arithmetic operators
-	'*', '/', '+', '-',
-
-	// comparison operators
-	'!', '&&', '||', '<', '<=', '>=', '>', '==', '!=',
-
-	// misc
-	'=', '?', ':'
-];
-
-const lexer = moo.compile({
-	// whitespace
-	ws: /[ \t]+/,
-	nl: {match: /\n/, lineBreaks: true},
-
-	// an integer or floating-point number
-	number: /(?:[0-9]*[.])?[0-9]+/,
-
-	// a variable name
-	name: /[a-zA-Z_](?:\w)*/,
-
-	syntax: syntax,
-});
+import lexer from './lexer'
 
 // don't emit whitespace tokens
 lexer.next = (next => () => {
@@ -88,7 +58,7 @@ ComplexExpression ->
     (((Assignment):? ";"):+ ReturnExpression) ";"
     {%
     (data) => {
-        const expressions = [];
+        const expressions: any[] = [];
 
         const [pairs, lastExpression] = data[0];
         for (const pair of pairs) {
@@ -167,13 +137,13 @@ Assignment ->
     {% (data) => new Assignment(data[0], data[2]) %}
 
 Variable ->
-    %name {% (data) => new Variable(data[0].value) %}
+    %name {% (data) => new VariableAccess(data[0].value) %}
   | MemberAccess {% first %}
 
 # variable member access
 MemberAccess ->
     Variable "." %name
-    {% (data) => new Variable(data[2].value, data[0]) %}
+    {% (data) => new VariableAccess(data[2].value, data[0]) %}
 
 # variable function call with zero or more parameters
 FunctionCall ->
@@ -182,7 +152,7 @@ FunctionCall ->
     (data) => {
         const func = data[0];
 
-        const params = [];
+        const params: any[] = [];
         const paramGroup = data[2];
         if (paramGroup !== null) {
             const [pairs, lastExpression] = paramGroup;

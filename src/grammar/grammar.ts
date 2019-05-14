@@ -9,7 +9,7 @@ declare var name: any;
 import {
     FloatValue,
 
-    Variable,
+    VariableAccess,
     Assignment,
     FunctionCall,
 
@@ -34,37 +34,7 @@ import {
     Plus
 } from './instructions';
 
-import moo from 'moo';
-
-const syntax = [
-	// brackets
-	'(', ')', '[', ']', '{', '}',
-
-	',', '.', ';',
-
-	// arithmetic operators
-	'*', '/', '+', '-',
-
-	// comparison operators
-	'!', '&&', '||', '<', '<=', '>=', '>', '==', '!=',
-
-	// misc
-	'=', '?', ':'
-];
-
-const lexer = moo.compile({
-	// whitespace
-	ws: /[ \t]+/,
-	nl: {match: /\n/, lineBreaks: true},
-
-	// an integer or floating-point number
-	number: /(?:[0-9]*[.])?[0-9]+/,
-
-	// a variable name
-	name: /[a-zA-Z_](?:\w)*/,
-
-	syntax: syntax,
-});
+import lexer from './lexer'
 
 // don't emit whitespace tokens
 lexer.next = (next => () => {
@@ -111,7 +81,7 @@ export var ParserRules: NearleyRule[] = [
     {"name": "ComplexExpression$subexpression$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ReturnExpression"]},
     {"name": "ComplexExpression", "symbols": ["ComplexExpression$subexpression$1", {"literal":";"}], "postprocess": 
         (data) => {
-            const expressions = [];
+            const expressions: any[] = [];
         
             const [pairs, lastExpression] = data[0];
             for (const pair of pairs) {
@@ -156,9 +126,9 @@ export var ParserRules: NearleyRule[] = [
     {"name": "Parenthesized", "symbols": [{"literal":"("}, "Expression", {"literal":")"}], "postprocess": (data) => data[1]},
     {"name": "ReturnExpression", "symbols": [{"literal":"return"}, "Expression"], "postprocess": (data) => data[1]},
     {"name": "Assignment", "symbols": ["Variable", {"literal":"="}, "Expression"], "postprocess": (data) => new Assignment(data[0], data[2])},
-    {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new Variable(data[0].value)},
+    {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[0].value)},
     {"name": "Variable", "symbols": ["MemberAccess"], "postprocess": first},
-    {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new Variable(data[2].value, data[0])},
+    {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[2].value, data[0])},
     {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
     {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["Expression", {"literal":","}]},
     {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1", "symbols": ["FunctionCall$ebnf$1$subexpression$1$ebnf$1", "FunctionCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
@@ -169,7 +139,7 @@ export var ParserRules: NearleyRule[] = [
         (data) => {
             const func = data[0];
         
-            const params = [];
+            const params: any[] = [];
             const paramGroup = data[2];
             if (paramGroup !== null) {
                 const [pairs, lastExpression] = paramGroup;
