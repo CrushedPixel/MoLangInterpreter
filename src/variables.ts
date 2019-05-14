@@ -1,8 +1,5 @@
-import MoLangMath from "./builtins/math";
 import {VariableAccess} from "./grammar/instructions";
 import {nameRegex} from "./grammar/lexer";
-
-type Constructor<T = {}> = new (...args: any[]) => T;
 
 export type VarMap = { [key: string]: Variable<any>; };
 
@@ -18,27 +15,17 @@ function checkVariableName(name: string) {
 	}
 }
 
-export interface Variable<T> {
-	get(): T;
+export abstract class Variable<T> {
+	abstract get(): T;
 
-	set(value: T);
+	abstract set(value: T);
 }
 
-/**
- * Mixin to make a Variable class read-only.
- */
-function Readonly<T, TBase extends Constructor<Variable<T>>>(Base: TBase) {
-	return class extends Base {
-		set(value: T) {
-			throw new Error("Variable is read-only");
-		}
-	};
-}
-
-export class PrimitiveVariable<T> implements Variable<T> {
+export class PrimitiveVariable<T> extends Variable<T> {
 	private value: T;
 
 	constructor(value: T) {
+		super();
 		this.value = value;
 	}
 
@@ -54,13 +41,18 @@ export class PrimitiveVariable<T> implements Variable<T> {
 export class FloatVariable extends PrimitiveVariable<number> {
 }
 
-export const ReadonlyFloatVariable = Readonly(FloatVariable);
+export class ReadonlyFloatVariable extends FloatVariable {
+	set(value: number): void {
+		throw new Error("Variable is read-only");
+	}
+}
 
-export class ObjectVariable implements Variable<any> {
+export class ObjectVariable extends Variable<any> {
 
 	private object: VarMap;
 
 	constructor(object: VarMap) {
+		super();
 		this.object = object;
 	}
 
@@ -97,11 +89,12 @@ export class ReadonlyObjectVariable extends ObjectVariable {
 	}
 }
 
-export class FunctionVariable implements Variable<any> {
+export class FunctionVariable extends Variable<any> {
 
 	private readonly fn: Function;
 
 	constructor(fn: Function) {
+		super();
 		this.fn = fn;
 	}
 
@@ -116,6 +109,38 @@ export class FunctionVariable implements Variable<any> {
 	call(...params: any[]): any {
 		return this.fn(...params);
 	}
+}
+
+/**
+ * A member variable that can be assigned to,
+ * but not read from, as it doesn't exist yet.
+ */
+export class UndefinedMember extends Variable<any> {
+
+	private readonly parent: ObjectVariable;
+	private readonly name: string;
+
+	constructor(parent: ObjectVariable, name: string) {
+		super();
+		this.parent = parent;
+		this.name = name;
+	}
+
+	get(): any {
+		throw new Error(`Object does not have a member named "${name}"`);
+	}
+
+	set(value: any) {
+		if (typeof value !== "number") {
+			throw new TypeError("Only numeric values can be assigned to a variable");
+		}
+
+		this.parent.setMember(this.name, new FloatVariable(value));
+	}
+}
+
+function variableAccess(name: string): VariableAccess {
+	return new VariableAccess(name, new VariableAccess("variable"));
 }
 
 /**
@@ -150,18 +175,18 @@ export default class Variables {
 	 * @returns                 The value of the variable. undefined if no variable with this name exists.
 	 */
 	getVariable(name: string): any {
-		const v = this.resolveVariableAccess(new VariableAccess(name));
+		const v = this.resolveVariableAccess(variableAccess(name));
 		return v.get();
 	}
 
 	/**
 	 * Sets the value of a variable.
 	 * @param {string} name     The name of the variable. Must not include the `variable.` prefix.
-	 * @param {number} value    The value to assign.
+	 * @param {any}    value    The value to assign.
 	 */
-	setVariable(name: string, value: number) {
-		checkVariableName(name);
-		this.variables[name] = value;
+	setVariable(name: string, value: any) {
+		const v = this.resolveVariableAccess(variableAccess(name));
+		v.set(value);
 	}
 
 	/**
@@ -209,7 +234,7 @@ export default class Variables {
 
 		const member = parent.getMember(v.name);
 		if (member === undefined) {
-			throw new Error(`Object "${v.parent.name}" does not have a member named "${v.name}"`);
+			return new UndefinedMember(parent, v.name);
 		}
 
 		return member;

@@ -68,12 +68,12 @@ export var Lexer: Lexer | undefined = lexer;
 export var ParserRules: NearleyRule[] = [
     {"name": "Script", "symbols": ["ComplexExpression"], "postprocess": first},
     {"name": "Script", "symbols": ["Expression"], "postprocess": (data) => data},
-    {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["Assignment"]},
+    {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["ExpAssignment"]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1", {"literal":";"}]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$1"]},
-    {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1$subexpression$1", "symbols": ["Assignment"]},
+    {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1$subexpression$1", "symbols": ["ExpAssignment"]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", {"literal":";"}]},
@@ -93,7 +93,9 @@ export var ParserRules: NearleyRule[] = [
             return expressions;
         }
         },
-    {"name": "Expression", "symbols": ["ExpConditional"], "postprocess": first},
+    {"name": "Expression", "symbols": ["ExpAssignment"], "postprocess": first},
+    {"name": "ExpAssignment", "symbols": ["ExpAssignment", {"literal":"="}, "ExpConditional"], "postprocess": (data) => new Assignment(data[0], data[2])},
+    {"name": "ExpAssignment", "symbols": ["ExpConditional"], "postprocess": first},
     {"name": "ExpConditional", "symbols": ["ExpConditional", {"literal":"?"}, "ExpOr", {"literal":":"}, "ExpOr"], "postprocess": (data) => new ConditionalExpression(data[0], data[2], data[4])},
     {"name": "ExpConditional", "symbols": ["ExpOr"], "postprocess": first},
     {"name": "ExpOr", "symbols": ["ExpOr", {"literal":"||"}, "ExpAnd"], "postprocess": (data) => new Or(data[0], data[2])},
@@ -114,28 +116,17 @@ export var ParserRules: NearleyRule[] = [
     {"name": "ExpProduct", "symbols": ["ExpProduct", {"literal":"*"}, "ExpUnary"], "postprocess": (data) => new Multiplication(data[0], data[2])},
     {"name": "ExpProduct", "symbols": ["ExpProduct", {"literal":"/"}, "ExpUnary"], "postprocess": (data) => new Division(data[0], data[2])},
     {"name": "ExpProduct", "symbols": ["ExpUnary"], "postprocess": first},
-    {"name": "ExpUnary", "symbols": [{"literal":"!"}, "Atom"], "postprocess": (data) => new Not(data[1])},
-    {"name": "ExpUnary", "symbols": [{"literal":"-"}, "Atom"], "postprocess": (data) => new Minus(data[1])},
-    {"name": "ExpUnary", "symbols": [{"literal":"+"}, "Atom"], "postprocess": (data) => new Plus(data[1])},
-    {"name": "ExpUnary", "symbols": ["Atom"], "postprocess": first},
-    {"name": "Atom", "symbols": ["Number"], "postprocess": first},
-    {"name": "Atom", "symbols": ["Parenthesized"], "postprocess": first},
-    {"name": "Atom", "symbols": ["Variable"], "postprocess": first},
-    {"name": "Atom", "symbols": ["FunctionCall"], "postprocess": first},
-    {"name": "Number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([val]) => new FloatValue(parseFloat(val.value))},
-    {"name": "Parenthesized", "symbols": [{"literal":"("}, "Expression", {"literal":")"}], "postprocess": (data) => data[1]},
-    {"name": "ReturnExpression", "symbols": [{"literal":"return"}, "Expression"], "postprocess": (data) => data[1]},
-    {"name": "Assignment", "symbols": ["Variable", {"literal":"="}, "Expression"], "postprocess": (data) => new Assignment(data[0], data[2])},
-    {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[0].value)},
-    {"name": "Variable", "symbols": ["MemberAccess"], "postprocess": first},
-    {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[2].value, data[0])},
-    {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
-    {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["Expression", {"literal":","}]},
-    {"name": "FunctionCall$ebnf$1$subexpression$1$ebnf$1", "symbols": ["FunctionCall$ebnf$1$subexpression$1$ebnf$1", "FunctionCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "FunctionCall$ebnf$1$subexpression$1", "symbols": ["FunctionCall$ebnf$1$subexpression$1$ebnf$1", "Expression"]},
-    {"name": "FunctionCall$ebnf$1", "symbols": ["FunctionCall$ebnf$1$subexpression$1"], "postprocess": id},
-    {"name": "FunctionCall$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "FunctionCall", "symbols": ["Variable", {"literal":"("}, "FunctionCall$ebnf$1", {"literal":")"}], "postprocess": 
+    {"name": "ExpUnary", "symbols": [{"literal":"!"}, "ExpCall"], "postprocess": (data) => new Not(data[1])},
+    {"name": "ExpUnary", "symbols": [{"literal":"-"}, "ExpCall"], "postprocess": (data) => new Minus(data[1])},
+    {"name": "ExpUnary", "symbols": [{"literal":"+"}, "ExpCall"], "postprocess": (data) => new Plus(data[1])},
+    {"name": "ExpUnary", "symbols": ["ExpCall"], "postprocess": first},
+    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["Atom", {"literal":","}]},
+    {"name": "ExpCall$ebnf$1$subexpression$1$ebnf$1", "symbols": ["ExpCall$ebnf$1$subexpression$1$ebnf$1", "ExpCall$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": (d) => d[0].concat([d[1]])},
+    {"name": "ExpCall$ebnf$1$subexpression$1", "symbols": ["ExpCall$ebnf$1$subexpression$1$ebnf$1", "Atom"]},
+    {"name": "ExpCall$ebnf$1", "symbols": ["ExpCall$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "ExpCall$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "ExpCall", "symbols": ["ExpCall", {"literal":"("}, "ExpCall$ebnf$1", {"literal":")"}], "postprocess": 
         (data) => {
             const func = data[0];
         
@@ -154,7 +145,17 @@ export var ParserRules: NearleyRule[] = [
         
             return new FunctionCall(func, ...params);
         }
-        }
+        },
+    {"name": "ExpCall", "symbols": ["Atom"], "postprocess": first},
+    {"name": "Atom", "symbols": ["Number"], "postprocess": first},
+    {"name": "Atom", "symbols": ["Parenthesized"], "postprocess": first},
+    {"name": "Atom", "symbols": ["Variable"], "postprocess": first},
+    {"name": "Number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([val]) => new FloatValue(parseFloat(val.value))},
+    {"name": "Parenthesized", "symbols": [{"literal":"("}, "Expression", {"literal":")"}], "postprocess": (data) => data[1]},
+    {"name": "ReturnExpression", "symbols": [{"literal":"return"}, "Expression"], "postprocess": (data) => data[1]},
+    {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[0].value)},
+    {"name": "Variable", "symbols": ["MemberAccess"], "postprocess": first},
+    {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[2].value, data[0])}
 ];
 
 export var ParserStart: string = "Script";

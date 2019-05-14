@@ -1,10 +1,33 @@
 import nearley from 'nearley';
 import * as grammar from './grammar/grammar'
-import {Assignment, FloatValue, VariableAccess} from './grammar/instructions'
-import Variables, {Variable, VarMap} from "./variables";
+import {
+	Addition,
+	And,
+	ArithmeticOperation,
+	Assignment, ConditionalExpression,
+	Division, Eq,
+	Expression,
+	FloatValue,
+	FunctionCall, Ge, Gt, Le, Lt, Minus,
+	Multiplication, Ne, Not, Or, Plus,
+	Subtraction, Unary,
+	VariableAccess
+} from './grammar/instructions'
+import Variables, {FunctionVariable, Variable, VarMap} from "./variables";
 import MoLangMath from "./builtins/math";
 
 const molangGrammar = nearley.Grammar.fromCompiled(grammar);
+
+/**
+ * Converts a boolean into a number.
+ */
+function b2f(b: boolean): number {
+	return b ? 1 : 0;
+}
+
+function f2b(f: number): boolean {
+	return f !== 0;
+}
 
 export default class MoLang {
 
@@ -32,14 +55,14 @@ export default class MoLang {
 		console.assert(results.length === 1, `Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
 
 		// use the expressions from the first parser result
-		const expressions = results[0];
+		const expressions: Expression[] = results[0];
 
 		if (expressions.length === 0) return 0;
 
 		// evaluate each expression
 		let lastResult: any;
 		for (const expr of expressions) {
-			lastResult = this.eval(expr);
+			lastResult = this.eval(expr, true);
 		}
 
 		// reset temp variables
@@ -66,26 +89,136 @@ export default class MoLang {
 		this.variables.setVariable(name, value);
 	}
 
-	private eval(x: any): any {
+	private eval(x: Expression, resolveVariables: boolean): any {
 		if (x instanceof FloatValue) {
 			return x.value;
 		}
 
 		if (x instanceof VariableAccess) {
-			return this.variables.resolveVariableAccess(x);
+			const variable = this.variables.resolveVariableAccess(x);
+			if (!resolveVariables) {
+				return variable;
+			}
+
+			return variable.get();
+		}
+
+		if (x instanceof FunctionCall) {
+			const params: any[] = [];
+			for (const p of x.parameters) {
+				params.push(this.eval(p, true));
+			}
+
+			const func = this.eval(x.variable, false);
+			if (!(func instanceof FunctionVariable)) {
+				throw new Error(`Variable is not a function`);
+			}
+
+			return func.call(...params);
 		}
 
 		if (x instanceof Assignment) {
-			const value = this.eval(x.value);
-			if (typeof value !== "number") {
-				throw new TypeError("Only numeric values can be assigned to variables!");
+			const variable = this.eval(x.leftOperand, false);
+			if (!(variable instanceof Variable)) {
+				throw new Error("Left-hand side of an assignment must resolve to a variable");
 			}
 
-			const variable = <Variable<any>> this.eval(x.variable);
+			const value = this.eval(x.rightOperand, true);
 			variable.set(value);
 
 			return value;
 		}
+
+		if (x instanceof ConditionalExpression) {
+			const condition = this.eval(x.condition, true);
+			if (typeof condition !== "number") {
+				throw new Error("Conditions must be numeric");
+			}
+
+			if (f2b(condition)) {
+				return this.eval(x.ifExpr, resolveVariables);
+			} else {
+				return this.eval(x.elseExpr, resolveVariables);
+			}
+		}
+
+		if (x instanceof ArithmeticOperation) {
+			const a = this.eval(x.leftOperand, true);
+			const b = this.eval(x.rightOperand, true);
+
+			if (typeof a !== "number" || typeof b !== "number") {
+				throw new TypeError("Operands of arithmetic expressions must be numeric");
+			}
+
+			if (x instanceof Multiplication) {
+				return a * b;
+			}
+
+			if (x instanceof Division) {
+				return a / b;
+			}
+
+			if (x instanceof Addition) {
+				return a + b;
+			}
+
+			if (x instanceof Subtraction) {
+				return a - b;
+			}
+
+			if (x instanceof And) {
+				return b2f(f2b(a) && f2b(b));
+			}
+
+			if (x instanceof Or) {
+				return b2f(f2b(a) || f2b(b));
+			}
+
+			if (x instanceof Lt) {
+				return b2f(a < b);
+			}
+
+			if (x instanceof Le) {
+				return b2f(a <= b);
+			}
+
+			if (x instanceof Gt) {
+				return b2f(a > b);
+			}
+
+			if (x instanceof Ge) {
+				return b2f(a >= b);
+			}
+
+			if (x instanceof Eq) {
+				return b2f(a === b);
+			}
+
+			if (x instanceof Ne) {
+				return b2f(a !== b);
+			}
+		}
+
+		if (x instanceof Unary) {
+			const val = this.eval(x.expression, true);
+			if (typeof val !== "number") {
+				throw new TypeError("Operands of unary expressions must be numeric");
+			}
+
+			if (x instanceof Not) {
+				return b2f(!f2b(val));
+			}
+
+			if (x instanceof Minus) {
+				return -val;
+			}
+
+			if (x instanceof Plus) {
+				return +val;
+			}
+		}
+
+		throw new Error(`Unknown instruction: ${x}`);
 	}
 
 }

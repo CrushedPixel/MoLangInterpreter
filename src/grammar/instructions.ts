@@ -1,4 +1,4 @@
-interface Expression {
+export interface Expression {
 }
 
 export class FloatValue implements Expression {
@@ -19,24 +19,14 @@ export class VariableAccess implements Expression {
 	}
 }
 
-export class Assignment implements Expression {
-	readonly variable: VariableAccess;
-	readonly value: Expression;
-
-	constructor(variable: VariableAccess, value: Expression) {
-		this.variable = variable;
-		this.value = value;
-	}
-}
-
 export class FunctionCall implements Expression {
 	/**
 	 * The variable to call as a function.
 	 */
-	readonly variable: VariableAccess;
+	readonly variable: Expression;
 	readonly parameters: Expression[];
 
-	constructor(variable: VariableAccess, ...parameters: Expression[]) {
+	constructor(variable: Expression, ...parameters: Expression[]) {
 		this.variable = variable;
 		this.parameters = parameters;
 	}
@@ -52,16 +42,7 @@ abstract class Operation implements Expression {
 	}
 }
 
-export class Multiplication extends Operation {
-}
-
-export class Division extends Operation {
-}
-
-export class Addition extends Operation {
-}
-
-export class Subtraction extends Operation {
+export class Assignment extends Operation {
 }
 
 export class ConditionalExpression implements Expression {
@@ -76,31 +57,46 @@ export class ConditionalExpression implements Expression {
 	}
 }
 
-export class And extends Operation {
+
+export abstract class ArithmeticOperation extends Operation {}
+
+export class Multiplication extends ArithmeticOperation {
 }
 
-export class Or extends Operation {
+export class Division extends ArithmeticOperation {
 }
 
-export class Lt extends Operation {
+export class Addition extends ArithmeticOperation {
 }
 
-export class Le extends Operation {
+export class Subtraction extends ArithmeticOperation {
 }
 
-export class Gt extends Operation {
+export class And extends ArithmeticOperation {
 }
 
-export class Ge extends Operation {
+export class Or extends ArithmeticOperation {
 }
 
-export class Eq extends Operation {
+export class Lt extends ArithmeticOperation {
 }
 
-export class Ne extends Operation {
+export class Le extends ArithmeticOperation {
 }
 
-class Unary implements Expression {
+export class Gt extends ArithmeticOperation {
+}
+
+export class Ge extends ArithmeticOperation {
+}
+
+export class Eq extends ArithmeticOperation {
+}
+
+export class Ne extends ArithmeticOperation {
+}
+
+export class Unary implements Expression {
 	readonly expression: Expression;
 
 	constructor(expression: Expression) {

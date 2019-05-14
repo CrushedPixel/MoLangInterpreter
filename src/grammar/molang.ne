@@ -55,7 +55,7 @@ Script ->
 # but doesn't need to as its value
 # is assumed to be used as the return value.
 ComplexExpression ->
-    (((Assignment):? ";"):+ ReturnExpression) ";"
+    (((ExpAssignment):? ";"):+ ReturnExpression) ";"
     {%
     (data) => {
         const expressions: any[] = [];
@@ -73,7 +73,11 @@ ComplexExpression ->
 
 # Expressions
 
-Expression -> ExpConditional {% first %}
+Expression -> ExpAssignment {% first %}
+
+ExpAssignment ->
+    ExpAssignment "=" ExpConditional {% (data) => new Assignment(data[0], data[2]) %}
+  | ExpConditional {% first %}
 
 ExpConditional ->
     ExpConditional "?" ExpOr ":" ExpOr {% (data) => new ConditionalExpression(data[0], data[2], data[4]) %}
@@ -110,44 +114,14 @@ ExpProduct ->
   | ExpUnary {% first %}
 
 ExpUnary ->
-    "!" Atom {% (data) => new Not(data[1]) %}
-  | "-" Atom {% (data) => new Minus(data[1]) %}
-  | "+" Atom {% (data) => new Plus(data[1]) %}
-  | Atom {% first %}
+    "!" ExpCall {% (data) => new Not(data[1]) %}
+  | "-" ExpCall {% (data) => new Minus(data[1]) %}
+  | "+" ExpCall {% (data) => new Plus(data[1]) %}
+  | ExpCall {% first %}
 
-Atom ->
-    Number          {% first %}
-  | Parenthesized   {% first %}
-  | Variable        {% first %}
-  | FunctionCall    {% first %}
-
-Number ->
-    %number
-    {% ([val]) => new FloatValue(parseFloat(val.value)) %}
-
-Parenthesized -> "(" Expression ")" {% (data) => data[1] %}
-
-ReturnExpression ->
-    "return" Expression
-    {% (data) => data[1] %}
-
-# variable assignment
-Assignment ->
-    Variable "=" Expression
-    {% (data) => new Assignment(data[0], data[2]) %}
-
-Variable ->
-    %name {% (data) => new VariableAccess(data[0].value) %}
-  | MemberAccess {% first %}
-
-# variable member access
-MemberAccess ->
-    Variable "." %name
-    {% (data) => new VariableAccess(data[2].value, data[0]) %}
-
-# variable function call with zero or more parameters
-FunctionCall ->
-    Variable "(" ((Expression ","):* Expression):? ")"
+# function call with zero or more parameters
+ExpCall ->
+    ExpCall "(" ((Atom ","):* Atom):? ")"
     {%
     (data) => {
         const func = data[0];
@@ -168,3 +142,28 @@ FunctionCall ->
         return new FunctionCall(func, ...params);
     }
     %}
+  | Atom {% first %}
+
+Atom ->
+    Number          {% first %}
+  | Parenthesized   {% first %}
+  | Variable        {% first %}
+
+Number ->
+    %number
+    {% ([val]) => new FloatValue(parseFloat(val.value)) %}
+
+Parenthesized -> "(" Expression ")" {% (data) => data[1] %}
+
+ReturnExpression ->
+    "return" Expression
+    {% (data) => data[1] %}
+
+Variable ->
+    %name {% (data) => new VariableAccess(data[0].value) %}
+  | MemberAccess {% first %}
+
+# variable member access
+MemberAccess ->
+    Variable "." %name
+    {% (data) => new VariableAccess(data[2].value, data[0]) %}
