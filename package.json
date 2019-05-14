@@ -2,8 +2,8 @@
   "name": "MoLangInterpreter",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.js",
+  "main": "dist/src/molang.js",
+  "types": "dist/src/molang.d.ts",
   "scripts": {
     "build": "./node_modules/.bin/nearleyc src/grammar/molang.ne -o src/grammar/grammar.ts; ./node_modules/.bin/tsc",
     "test": "npm run build; ./node_modules/.bin/mocha dist/test/**/**.js"

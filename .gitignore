@@ -6,3 +6,6 @@ node_modules
 
 # TypeScript output
 dist
+
+# Auto-generated grammar file
+src/grammar/grammar.ts
