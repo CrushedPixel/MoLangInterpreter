@@ -1,6 +1,6 @@
 {
-  "name": "MoLangInterpreter",
-  "version": "1.0.0",
+  "name": "molang-interpreter",
+  "version": "0.0.1",
   "description": "",
   "main": "dist/src/molang.js",
   "types": "dist/src/molang.d.ts",
@@ -25,5 +25,9 @@
   "dependencies": {
     "moo": "^0.5.0",
     "nearley": "^2.16.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Noxcrew/MoLangInterpreter"
   }
 }
