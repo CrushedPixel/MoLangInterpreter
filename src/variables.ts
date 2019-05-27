@@ -127,7 +127,7 @@ export class UndefinedMember extends Variable<any> {
 	}
 
 	get(): any {
-		throw new Error(`Object does not have a member named "${name}"`);
+		throw new Error(`Object does not have a member named "${this.name}"`);
 	}
 
 	set(value: any) {
@@ -172,21 +172,20 @@ export default class Variables {
 	/**
 	 * Retrieves the value of a variable.
 	 * @param   {string} name   The name of the variable. Must not include the `variable.` prefix.
-	 * @returns                 The value of the variable. undefined if no variable with this name exists.
+	 * @returns                 The variable.
+	 * @throws                  Error if a variable with this name doesn't exist.
 	 */
-	getVariable(name: string): any {
-		const v = this.resolveVariableAccess(variableAccess(name));
-		return v.get();
+	getVariable(name: string): Variable<any> {
+		return this.resolveVariableAccess(variableAccess(name));
 	}
 
 	/**
 	 * Sets the value of a variable.
-	 * @param {string} name     The name of the variable. Must not include the `variable.` prefix.
-	 * @param {any}    value    The value to assign.
+	 * @param {string}          name    The name of the variable. Must not include the `variable.` prefix.
+	 * @param {Variable<any>}   value   The value to assign.
 	 */
-	setVariable(name: string, value: any) {
-		const v = this.resolveVariableAccess(variableAccess(name));
-		v.set(value);
+	setVariable(name: string, value: Variable<any>) {
+		this.variables.setMember(name, value);
 	}
 
 	/**

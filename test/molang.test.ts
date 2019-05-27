@@ -9,6 +9,15 @@ describe('Arithmetic', () => {
 			"10 + 3 * 4 - 3 * (2 + 9)");
 		expect(result).to.equal(10 + 3 * 4 - 3 * (2 + 9));
 	});
+
+	it('supports arithmetic with variables', () => {
+		const m = new MoLang({
+			a: new FloatVariable(0.5),
+		});
+
+		const result = m.evaluate("variable.b = 2; return variable.a * Math.abs(variable.b);");
+		expect(result).to.equal(1);
+	});
 });
 
 describe('Function calls', () => {
@@ -39,7 +48,7 @@ describe('Function calls', () => {
 			"(variable.random > 0.5 ? Math.sin : Math.cos)(0)"
 		);
 
-		expect(result).to.equal((<number>m.getVariable("random") > 0.5 ? Math.sin : Math.cos)(0));
+		expect(result).to.equal(((<FloatVariable>m.getVariable("random")).get() > 0.5 ? Math.sin : Math.cos)(0));
 	});
 });
 
@@ -53,8 +62,8 @@ describe('Assignment', () => {
 			"10 + 3 > 10 ? variable.x : variable.y = 1"
 		);
 
-		expect(m.getVariable("x")).to.equal(1);
-		expect(m.getVariable("y")).to.equal(0);
+		expect((<FloatVariable>m.getVariable("x")).get()).to.equal(1);
+		expect((<FloatVariable>m.getVariable("y")).get()).to.equal(0);
 	});
 
 	it('correctly assigns to new variables', () => {
@@ -67,9 +76,17 @@ describe('Assignment', () => {
 			return 0;
 		`);
 
-		expect(m.getVariable("x")).to.equal(1);
-		expect(m.getVariable("y")).to.equal(m.getVariable("random"));
+		expect((<FloatVariable>m.getVariable("x")).get()).to.equal(1);
+		expect((<FloatVariable>m.getVariable("y")).get()).to.equal((<FloatVariable>m.getVariable("random")).get());
 	});
+
+	it('correctly uses variables that were assigned in a previous script', () => {
+		const m = new MoLang();
+		m.evaluate("variable.a = 10; variable.b = 2;");
+		const result = m.evaluate("variable.a * variable.b");
+
+		expect(result).to.equal(20);
+	})
 });
 
 describe('Complex expressions', () => {
@@ -84,8 +101,8 @@ describe('Complex expressions', () => {
 			return temp.sign * Math.sin(variable.random_2);
 		`);
 
-		const sign = <number>m.getVariable("random_1") > 0.5 ? 1 : -1;
-		const expected = sign * Math.sin(<number>m.getVariable("random_2"));
+		const sign = (<FloatVariable>m.getVariable("random_1")).get() > 0.5 ? 1 : -1;
+		const expected = sign * Math.sin((<FloatVariable>m.getVariable("random_2")).get());
 
 		expect(result).to.equal(expected);
 	});

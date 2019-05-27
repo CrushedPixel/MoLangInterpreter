@@ -4,7 +4,8 @@ import {
 	Addition,
 	And,
 	ArithmeticOperation,
-	Assignment, CommaExpression,
+	Assignment,
+	CommaExpression,
 	ConditionalExpression,
 	Division,
 	Eq,
@@ -25,7 +26,15 @@ import {
 	Unary,
 	VariableAccess
 } from './grammar/instructions'
-import Variables, {FunctionVariable, Variable, VarMap} from "./variables";
+import Variables, {
+	FloatVariable,
+	FunctionVariable,
+	ObjectVariable,
+	ReadonlyFloatVariable,
+	ReadonlyObjectVariable,
+	Variable,
+	VarMap
+} from "./variables";
 import MoLangMath from "./builtins/math";
 
 const molangGrammar = nearley.Grammar.fromCompiled(grammar);
@@ -59,10 +68,19 @@ export default class MoLang {
 	}
 
 	evaluate(source: string): any {
+		// support empty expressions
+		if (source.trim().length === 0) {
+			return 0;
+		}
+
 		// parse the source string
 		const parser = new nearley.Parser(molangGrammar);
 		parser.feed(source);
 		const results = parser.finish();
+
+		if (results.length === 0) {
+			throw new Error(`Invalid source string: ${source}`);
+		}
 
 		console.assert(results.length === 1, `Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
 
@@ -88,7 +106,7 @@ export default class MoLang {
 	 * @param   {string} name   The name of the variable. Must not include the `variable.` prefix.
 	 * @returns {number | null} The value of the variable. null if no variable with this name exists.
 	 */
-	getVariable(name: string): number | null {
+	getVariable(name: string): Variable<any> | null {
 		return this.variables.getVariable(name);
 	}
 
@@ -97,7 +115,7 @@ export default class MoLang {
 	 * @param {string} name     The name of the variable. Must not include the `variable.` prefix.
 	 * @param {number} value    The value to assign.
 	 */
-	setVariable(name: string, value: number) {
+	setVariable(name: string, value: Variable<any>) {
 		this.variables.setVariable(name, value);
 	}
 
@@ -236,5 +254,6 @@ export default class MoLang {
 
 		throw new Error(`Unknown instruction: ${x}`);
 	}
-
 }
+
+export {FloatVariable, ReadonlyFloatVariable, ObjectVariable, ReadonlyObjectVariable, FunctionVariable};

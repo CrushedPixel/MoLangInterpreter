@@ -176,7 +176,7 @@ Number ->
 Parenthesized -> "(" Expression ")" {% (data) => data[1] %}
 
 ReturnExpression ->
-    "return" Expression
+    ("return"):? Expression
     {% (data) => data[1] %}
 
 Variable ->

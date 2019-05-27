@@ -167,7 +167,10 @@ export var ParserRules: NearleyRule[] = [
     {"name": "Atom", "symbols": ["Variable"], "postprocess": first},
     {"name": "Number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([val]) => new FloatValue(parseFloat(val.value))},
     {"name": "Parenthesized", "symbols": [{"literal":"("}, "Expression", {"literal":")"}], "postprocess": (data) => data[1]},
-    {"name": "ReturnExpression", "symbols": [{"literal":"return"}, "Expression"], "postprocess": (data) => data[1]},
+    {"name": "ReturnExpression$ebnf$1$subexpression$1", "symbols": [{"literal":"return"}]},
+    {"name": "ReturnExpression$ebnf$1", "symbols": ["ReturnExpression$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "ReturnExpression$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "ReturnExpression", "symbols": ["ReturnExpression$ebnf$1", "Expression"], "postprocess": (data) => data[1]},
     {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[0].value)},
     {"name": "Variable", "symbols": ["MemberAccess"], "postprocess": first},
     {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[2].value, data[0])}
