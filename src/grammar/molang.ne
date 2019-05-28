@@ -60,9 +60,13 @@ function unpackCommaExpression(expr: CommaExpression): Expression[] {
 @lexer lexer
 
 # Script creates an array of expressions to execute.
+
+# Only non-assignment (therefore conditional and lower) expressions
+# are allowed to exist by themselves without ComplexExpression semantics
+# (ending with a semicolon).
 Script ->
     ComplexExpression {% first %}
-  | Expression        {% (data) => data %}
+  | ExpConditional    {% (data) => data %}
 
 # In a multi-expression script,
 # all but the last expression
@@ -71,7 +75,7 @@ Script ->
 # but doesn't need to as its value
 # is assumed to be used as the return value.
 ComplexExpression ->
-    (((ExpAssignment):? ";"):+ (ReturnExpression):?) (";"):?
+    (((ExpAssignment):? ";"):+ (ReturnExpression ";"):?)
     {%
     (data) => {
         const expressions: any[] = [];

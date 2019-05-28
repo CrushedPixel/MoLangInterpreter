@@ -59,7 +59,7 @@ describe('Assignment', () => {
 			y: new FloatVariable(0)
 		});
 		m.evaluate(
-			"10 + 3 > 10 ? variable.x : variable.y = 1"
+			"10 + 3 > 10 ? variable.x : variable.y = 1;"
 		);
 
 		expect((<FloatVariable>m.getVariable("x")).get()).to.equal(1);
@@ -86,7 +86,22 @@ describe('Assignment', () => {
 		const result = m.evaluate("variable.a * variable.b");
 
 		expect(result).to.equal(20);
-	})
+	});
+
+	it('allows single-assignment expressions', () => {
+		const m = new MoLang();
+		m.evaluate("variable.a = 10;");
+
+		expect((<FloatVariable>m.getVariable("a")).get()).to.equal(10);
+	});
+
+	it('disallows variable assignments not followed by a semicolon', () => {
+		const m = new MoLang();
+		const src = "variable.a = 10";
+		expect(() => {
+			m.evaluate(src)
+		}).to.throw(`Invalid source string: ${src}`);
+	});
 });
 
 describe('Complex expressions', () => {

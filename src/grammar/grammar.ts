@@ -83,7 +83,7 @@ export var Lexer: Lexer | undefined = lexer;
 
 export var ParserRules: NearleyRule[] = [
     {"name": "Script", "symbols": ["ComplexExpression"], "postprocess": first},
-    {"name": "Script", "symbols": ["Expression"], "postprocess": (data) => data},
+    {"name": "Script", "symbols": ["ExpConditional"], "postprocess": (data) => data},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["ExpAssignment"]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$1$ebnf$1", "symbols": [], "postprocess": () => null},
@@ -94,14 +94,11 @@ export var ParserRules: NearleyRule[] = [
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", {"literal":";"}]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ComplexExpression$subexpression$1$ebnf$1$subexpression$2"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "ComplexExpression$subexpression$1$ebnf$2$subexpression$1", "symbols": ["ReturnExpression"]},
+    {"name": "ComplexExpression$subexpression$1$ebnf$2$subexpression$1", "symbols": ["ReturnExpression", {"literal":";"}]},
     {"name": "ComplexExpression$subexpression$1$ebnf$2", "symbols": ["ComplexExpression$subexpression$1$ebnf$2$subexpression$1"], "postprocess": id},
     {"name": "ComplexExpression$subexpression$1$ebnf$2", "symbols": [], "postprocess": () => null},
     {"name": "ComplexExpression$subexpression$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ComplexExpression$subexpression$1$ebnf$2"]},
-    {"name": "ComplexExpression$ebnf$1$subexpression$1", "symbols": [{"literal":";"}]},
-    {"name": "ComplexExpression$ebnf$1", "symbols": ["ComplexExpression$ebnf$1$subexpression$1"], "postprocess": id},
-    {"name": "ComplexExpression$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "ComplexExpression", "symbols": ["ComplexExpression$subexpression$1", "ComplexExpression$ebnf$1"], "postprocess": 
+    {"name": "ComplexExpression", "symbols": ["ComplexExpression$subexpression$1"], "postprocess": 
         (data) => {
             const expressions: any[] = [];
         
