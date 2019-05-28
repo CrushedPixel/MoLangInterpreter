@@ -50,6 +50,8 @@ function f2b(f: number): boolean {
 	return f !== 0;
 }
 
+const parserCache: {[key: string]: Expression[]} = {};
+
 export default class MoLang {
 
 	private readonly variables: Variables;
@@ -73,22 +75,33 @@ export default class MoLang {
 			return 0;
 		}
 
-		// parse the source string
-		const parser = new nearley.Parser(molangGrammar);
-		parser.feed(source);
-		const results = parser.finish();
+		let expressions: Expression[];
 
-		if (results.length === 0) {
-			throw new Error(`Invalid source string: ${source}`);
+		const cached = parserCache[source];
+		if (cached !== undefined) {
+			expressions = cached;
+
+		} else {
+			// parse the source string
+			const parser = new nearley.Parser(molangGrammar);
+			parser.feed(source);
+			const results = parser.finish();
+
+			if (results.length === 0) {
+				throw new Error(`Invalid source string: ${source}`);
+			}
+
+			if (results.length !== 1) {
+				console.error(results);
+				throw new Error(`Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
+			}
+
+			// use the expressions from the first parser result
+			expressions = results[0];
+
+			// cache the expressions
+			parserCache[source] = expressions;
 		}
-
-		if (results.length !== 1) {
-			console.error(results);
-			throw new Error(`Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
-		}
-
-		// use the expressions from the first parser result
-		const expressions: Expression[] = results[0];
 
 		if (expressions.length === 0) return 0;
 
