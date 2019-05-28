@@ -16,6 +16,10 @@ const syntax = [
 	'=', '?', ':'
 ];
 
+const keywords = [
+	'return'
+];
+
 /**
  * A regex that matches valid variable names.
  */
@@ -29,7 +33,12 @@ export default moo.compile({
 	// an integer or floating-point number
 	number: /(?:[0-9]*[.])?[0-9]+/,
 
-	name: nameRegex,
+	name: {
+		match: nameRegex,
+		type: moo.keywords({
+			keyword: keywords
+		})
+	},
 
 	syntax: syntax,
 });

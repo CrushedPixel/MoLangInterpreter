@@ -100,7 +100,14 @@ describe('Assignment', () => {
 		const src = "variable.a = 10";
 		expect(() => {
 			m.evaluate(src)
-		}).to.throw(`Invalid source string: ${src}`);
+		}).to.throw();
+	});
+
+	it('disallows multiple expressions that do nothing', () => {
+		const m = new MoLang();
+		expect(() => m.evaluate(
+			"temp.a = 1; temp.b = 1; temp.a temp.b;"
+		)).to.throw();
 	});
 });
 
@@ -121,4 +128,24 @@ describe('Complex expressions', () => {
 
 		expect(result).to.equal(expected);
 	});
+});
+
+describe('Ambiguity', () => {
+	it('correctly parses complex expressions', () => {
+		const m = new MoLang({
+			curve: new FloatVariable(0),
+			emitter_age: new FloatVariable(1),
+			emitter_lifetime: new FloatVariable(1)
+		});
+
+		expect(() => m.evaluate(
+			"temp.max_lifetime = 1.5; return ((1 - variable.curve) * (0.5 + 0.5 * variable.emitter_age / variable.emitter_lifetime)) * temp.max_lifetime;"
+		)).to.not.throw();
+	});
+
+	it('allows keywords to be used as part of variable names', () => {
+		const m = new MoLang();
+		const result = m.evaluate("temp.returnValue = 10; return temp.returnValue;");
+		expect(result).to.equal(10);
+	})
 });

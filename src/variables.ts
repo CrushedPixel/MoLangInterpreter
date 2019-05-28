@@ -74,6 +74,10 @@ export class ObjectVariable extends Variable<any> {
 		this.object[name] = value;
 	}
 
+	getMembers(): VarMap {
+		return this.object;
+	}
+
 	clear() {
 		this.object = {};
 	}
@@ -167,6 +171,14 @@ export default class Variables {
 		this.variables = new ObjectVariable(variables);
 		this.builtins = builtins;
 		this.temp = new ObjectVariable({});
+	}
+
+	/**
+	 * Retrieves all defined variables.
+	 * @returns {VarMap} All variables.
+	 */
+	getVariables(): VarMap {
+		return this.variables.getMembers();
 	}
 
 	/**

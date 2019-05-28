@@ -82,7 +82,10 @@ export default class MoLang {
 			throw new Error(`Invalid source string: ${source}`);
 		}
 
-		console.assert(results.length === 1, `Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
+		if (results.length !== 1) {
+			console.error(results);
+			throw new Error(`Ambiguity in MoLang grammar definition - please report this issue! ${source}`);
+		}
 
 		// use the expressions from the first parser result
 		const expressions: Expression[] = results[0];
@@ -99,6 +102,14 @@ export default class MoLang {
 		this.variables.resetTempVariables();
 
 		return lastResult;
+	}
+
+	/**
+	 * Retrieves all defined variables.
+	 * @returns {VarMap} All variables.
+	 */
+	getVariables(): VarMap {
+		return this.variables.getVariables();
 	}
 
 	/**
@@ -256,4 +267,4 @@ export default class MoLang {
 	}
 }
 
-export {FloatVariable, ReadonlyFloatVariable, ObjectVariable, ReadonlyObjectVariable, FunctionVariable};
+export {Variable, FloatVariable, ReadonlyFloatVariable, ObjectVariable, ReadonlyObjectVariable, FunctionVariable};
