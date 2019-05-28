@@ -71,7 +71,7 @@ Script ->
 # but doesn't need to as its value
 # is assumed to be used as the return value.
 ComplexExpression ->
-    (((ExpAssignment):? ";"):+ ReturnExpression) ";"
+    (((ExpAssignment):? ";"):+ (ReturnExpression):?) (";"):?
     {%
     (data) => {
         const expressions: any[] = [];
@@ -82,7 +82,11 @@ ComplexExpression ->
             expressions.push(pair[0][0]);
         }
 
-        expressions.push(lastExpression);
+        // the return expression is optional
+        if (lastExpression !== null) {
+            expressions.push(lastExpression[0]);
+        }
+
         return expressions;
     }
     %}
@@ -176,7 +180,7 @@ Number ->
 Parenthesized -> "(" Expression ")" {% (data) => data[1] %}
 
 ReturnExpression ->
-    ("return"):? Expression
+    "return" Expression
     {% (data) => data[1] %}
 
 Variable ->

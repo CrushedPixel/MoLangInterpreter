@@ -94,8 +94,14 @@ export var ParserRules: NearleyRule[] = [
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "ComplexExpression$subexpression$1$ebnf$1$subexpression$2", "symbols": ["ComplexExpression$subexpression$1$ebnf$1$subexpression$2$ebnf$1", {"literal":";"}]},
     {"name": "ComplexExpression$subexpression$1$ebnf$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ComplexExpression$subexpression$1$ebnf$1$subexpression$2"], "postprocess": (d) => d[0].concat([d[1]])},
-    {"name": "ComplexExpression$subexpression$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ReturnExpression"]},
-    {"name": "ComplexExpression", "symbols": ["ComplexExpression$subexpression$1", {"literal":";"}], "postprocess": 
+    {"name": "ComplexExpression$subexpression$1$ebnf$2$subexpression$1", "symbols": ["ReturnExpression"]},
+    {"name": "ComplexExpression$subexpression$1$ebnf$2", "symbols": ["ComplexExpression$subexpression$1$ebnf$2$subexpression$1"], "postprocess": id},
+    {"name": "ComplexExpression$subexpression$1$ebnf$2", "symbols": [], "postprocess": () => null},
+    {"name": "ComplexExpression$subexpression$1", "symbols": ["ComplexExpression$subexpression$1$ebnf$1", "ComplexExpression$subexpression$1$ebnf$2"]},
+    {"name": "ComplexExpression$ebnf$1$subexpression$1", "symbols": [{"literal":";"}]},
+    {"name": "ComplexExpression$ebnf$1", "symbols": ["ComplexExpression$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "ComplexExpression$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "ComplexExpression", "symbols": ["ComplexExpression$subexpression$1", "ComplexExpression$ebnf$1"], "postprocess": 
         (data) => {
             const expressions: any[] = [];
         
@@ -105,7 +111,11 @@ export var ParserRules: NearleyRule[] = [
                 expressions.push(pair[0][0]);
             }
         
-            expressions.push(lastExpression);
+            // the return expression is optional
+            if (lastExpression !== null) {
+                expressions.push(lastExpression[0]);
+            }
+        
             return expressions;
         }
         },
@@ -167,10 +177,7 @@ export var ParserRules: NearleyRule[] = [
     {"name": "Atom", "symbols": ["Variable"], "postprocess": first},
     {"name": "Number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([val]) => new FloatValue(parseFloat(val.value))},
     {"name": "Parenthesized", "symbols": [{"literal":"("}, "Expression", {"literal":")"}], "postprocess": (data) => data[1]},
-    {"name": "ReturnExpression$ebnf$1$subexpression$1", "symbols": [{"literal":"return"}]},
-    {"name": "ReturnExpression$ebnf$1", "symbols": ["ReturnExpression$ebnf$1$subexpression$1"], "postprocess": id},
-    {"name": "ReturnExpression$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "ReturnExpression", "symbols": ["ReturnExpression$ebnf$1", "Expression"], "postprocess": (data) => data[1]},
+    {"name": "ReturnExpression", "symbols": [{"literal":"return"}, "Expression"], "postprocess": (data) => data[1]},
     {"name": "Variable", "symbols": [(lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[0].value)},
     {"name": "Variable", "symbols": ["MemberAccess"], "postprocess": first},
     {"name": "MemberAccess", "symbols": ["Variable", {"literal":"."}, (lexer.has("name") ? {type: "name"} : name)], "postprocess": (data) => new VariableAccess(data[2].value, data[0])}
